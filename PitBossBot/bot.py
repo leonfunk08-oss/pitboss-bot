@@ -243,7 +243,7 @@ async def on_ready():
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
-        await ctx.send("❌ Only Admins,Race Rontrol,Steward can create race reminders.")
+        await ctx.send("❌ Only People with the right Server Roles can create race Events.")
 
 # ================= TOKEN =================
 import os
