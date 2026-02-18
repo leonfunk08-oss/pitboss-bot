@@ -246,4 +246,5 @@ async def on_command_error(ctx, error):
         await ctx.send("❌ Only Admins,Race Rontrol,Steward can create race reminders.")
 
 # ================= TOKEN =================
-bot.run("MTQ3MjI0OTMzNTIxMDA0OTgwNQ.Gxh1vR.Phsu0Y5rh1iyP38HJB_QOjyPi19r8lSzQ9ebdk")
+import os
+bot.run(os.getenv("TOKEN"))
