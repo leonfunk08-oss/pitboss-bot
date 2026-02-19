@@ -375,8 +375,9 @@ async def hotlap(ctx, *, args):
 # ===== LEADERBOARD =====
 
 @bot.command()
-async def leaderboard(ctx, track: str):
+async def leaderboard(ctx, *, track: str):
     track = track.lower().strip()
+    track = " ".join(track.split())  # Mehrfache Leerzeichen entfernen
 
     if track not in leaderboards or len(leaderboards.get(track, {})) == 0:
         await ctx.send("❌ No times recorded for this track.")
