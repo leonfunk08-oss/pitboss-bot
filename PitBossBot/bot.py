@@ -81,25 +81,38 @@ def seconds_to_time(seconds):
 
 
 # ===== ERLAUBTE ROLLEN =====
-ALLOWED_ROLES = ["Admin", "Race Control", "Steward" ,"Event coordinator"]  # Rollen, die Reminder erstellen dürfen
+ALLOWED_ROLES = ["Admin", "Race Control", "Steward" ,"Event coordinator"]
+BOT_OWNER_ID = 400613342340710400  # Ersetze durch deine Discord User ID (optional, falls du immer Zugriff haben möchtest)
+
 
 # ===== ROLLENCHECK STABIL (KEINE CRASHES MEHR) =====
 def has_permission():
     async def predicate(ctx):
 
-        # nur Server, keine DMs
+        # Bot Owner (du) darf immer
+        if ctx.author.id == BOT_OWNER_ID:
+            return True
+
+        # nur Server, keine DM
         if ctx.guild is None:
             return False
 
-        # echten Member holen
         member = ctx.guild.get_member(ctx.author.id)
         if member is None:
             return False
 
-        # Rollen prüfen
         user_roles = [role.name for role in member.roles]
-        return any(role in ALLOWED_ROLES for role in user_roles)
 
+        if any(role in ALLOWED_ROLES for role in user_roles):
+            return True
+
+        return False
+
+    return commands.check(predicate)
+
+def is_bot_owner():
+    async def predicate(ctx):
+        return ctx.author.id == BOT_OWNER_ID
     return commands.check(predicate)
 
 
@@ -342,7 +355,8 @@ async def leaderboard(ctx, track: str):
 # ===== SAY =====
 
 @bot.command()
-async def say(ctx, *, text):
+@is_bot_owner()
+async def say(ctx, *, text: str):
     msg = await ctx.send(text)      # Bot sendet zuerst
     try:
         await ctx.message.delete()  # dann löscht er deine Nachricht
@@ -394,8 +408,17 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
+
     if isinstance(error, commands.CheckFailure):
-        await ctx.send("❌ Only People with the right Server Roles can create race Events.")
+
+        if ctx.command.name == "race":
+            await ctx.send("❌ Only People with the right Server Roles can create race Events.")
+
+        elif ctx.command.name == "say":
+            await ctx.send("❌ You are not allowed to use this command.")
+
+        return
+
 
 # ================= TOKEN =================
 import os
