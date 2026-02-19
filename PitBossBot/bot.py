@@ -390,8 +390,44 @@ async def hotlap(ctx, *, args):
     else:
         leaderboards[track][user_id] = seconds
         save_data()
-        await ctx.send(f"🏁 Lap time recorded: {lap_time}")
 
+
+    track_key = track.lower()
+
+    if track_key not in leaderboard_messages:
+        await ctx.send("❌ Leaderboard nicht eingerichtet. Admin: !setup_lb paul ricard")
+        return
+
+    channel_id = leaderboard_messages[track_key]["channel_id"]
+    message_id = leaderboard_messages[track_key]["message_id"]
+
+    channel = bot.get_channel(channel_id)
+    msg = await channel.fetch_message(message_id)
+
+    # leaderboard bauen
+    sorted_times = sorted(leaderboards[track].items(), key=lambda x: x[1])
+
+    text = ""
+    pos = 1
+
+    for uid, secs in sorted_times:
+        user = await bot.fetch_user(int(uid))
+        mins = int(secs // 60)
+        sec = secs % 60
+        formatted = f"{mins}:{sec:06.3f}"
+        text += f"**#{pos} {user.name} — {formatted}**\n"
+        pos += 1
+
+    if text == "":
+        text = "Noch keine Zeiten"
+
+    embed = discord.Embed(
+        title=f"🏁 {track.title()} Leaderboard",
+        description=text,
+        color=discord.Color.red()
+    )
+
+    await msg.edit(embed=embed)
 
 # ===== LEADERBOARD =====
 
