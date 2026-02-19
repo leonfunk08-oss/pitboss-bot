@@ -8,6 +8,25 @@ import os
 import sys
 import signal
 
+leaderboard_messages = {}
+
+import json
+
+def save_lb():
+    with open("leaderboards.json", "w") as f:
+        json.dump(leaderboard_messages, f)
+
+def load_lb():
+    global leaderboard_messages
+    try:
+        with open("leaderboards.json", "r") as f:
+            leaderboard_messages = json.load(f)
+    except:
+        leaderboard_messages = {}
+
+load_lb()
+
+
 # ===== SINGLE INSTANCE LOCK =====
 print("BOT INSTANCE STARTED")
 
@@ -52,6 +71,7 @@ track_images = {
 # ================= HOTLAP LEADERBOARD =================
 
 leaderboards = {}  # { "monza": { user_id: time_in_seconds } }
+
 
 def save_data():
     with open("leaderboards.json", "w") as f:
@@ -372,6 +392,7 @@ async def hotlap(ctx, *, args):
         save_data()
         await ctx.send(f"🏁 Lap time recorded: {lap_time}")
 
+
 # ===== LEADERBOARD =====
 
 @bot.command()
@@ -401,6 +422,27 @@ async def leaderboard(ctx, *, track: str):
     )
 
     await ctx.send(embed=embed)
+
+
+@bot.command()
+async def setup_lb(ctx, *, track: str):
+
+    embed = discord.Embed(
+        title=f"🏁 {track.title()} Leaderboard",
+        description="Noch keine Zeiten",
+        color=discord.Color.red()
+    )
+
+    msg = await ctx.send(embed=embed)
+
+    leaderboard_messages[track.lower()] = {
+        "channel_id": ctx.channel.id,
+        "message_id": msg.id
+    }
+
+    save_lb()
+    await ctx.send(f"Leaderboard für {track} erstellt.")
+
 
 # ===== SAY =====
 
