@@ -235,7 +235,7 @@ async def race(ctx, date: str, time: str, *, track:str):
 
 
 @bot.command()
-@commands.has_any_role("Admin", "Race Control", "Steward", "Event coordinator")
+#@commands.has_any_role("Admin", "Race Control", "Steward", "Event coordinator")
 async def say(ctx, *, text):
     await ctx.message.delete()   # löscht deine !say Nachricht
     await ctx.send(text)         # Bot sendet Text
