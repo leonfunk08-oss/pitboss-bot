@@ -218,7 +218,7 @@ from urllib.parse import quote_plus
 # ===== RACE =====
 
 @bot.command()
-@is_owner_or_role
+@is_owner_or_role()
 async def race(ctx, date: str, time: str, *, track:str):
     
     # ===== STRECKE + BESCHREIBUNG PARSEN =====
