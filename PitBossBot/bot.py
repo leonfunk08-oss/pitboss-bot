@@ -233,7 +233,6 @@ async def race(ctx, date: str, time: str, *, track:str):
     view.message = msg
 
 @bot.command()
-@commands.has_any_role("Admin","Race Control","Steward","Event coordinator")
 async def say(ctx, *, text):
     await ctx.send(text)
     
