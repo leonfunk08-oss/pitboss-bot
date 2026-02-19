@@ -416,6 +416,13 @@ async def hotlap(ctx, *, args):
 
     await msg.edit(embed=embed)
 
+    await asyncio.sleep(2)
+
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
 # ===== LEADERBOARD =====
 
 @bot.command()
