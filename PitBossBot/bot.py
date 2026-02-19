@@ -3,7 +3,13 @@ from discord.ext import commands
 from discord.ui import Button, View
 from datetime import datetime, timedelta, timezone
 import json
+import subprocess
+import os
+import sys
+import signal
 
+# ===== SINGLE INSTANCE LOCK =====
+print("BOT INSTANCE STARTED")
 
 # ===== BOT SETUP =====
 intents = discord.Intents.default()
