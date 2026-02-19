@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 
 # ===== BOT SETUP =====
 intents = discord.Intents.default()
-intents.message_content = True
 intents.members = True  # wichtig für Rollencheck
 
 bot = commands.Bot(
@@ -233,7 +232,11 @@ async def race(ctx, date: str, time: str, *, track:str):
     # View merkt sich Nachricht
     view.message = msg
 
-
+@bot.command()
+@commands.has_any_role("Admin","Race Control","Steward","Event coordinator")
+async def say(ctx, *, text):
+    await ctx.send(text)
+    
 # ================= EVENTS =================
 
 @bot.event
