@@ -7,6 +7,7 @@ import subprocess
 import os
 import sys
 import signal
+import asyncio
 
 leaderboard_messages = {}
 
@@ -463,21 +464,37 @@ async def leaderboard(ctx, *, track: str):
 @bot.command()
 async def setup_lb(ctx, *, track: str):
 
+    # Leaderboard posten
     embed = discord.Embed(
         title=f"🏁 {track.title()} Leaderboard",
         description="Noch keine Zeiten",
         color=discord.Color.red()
     )
 
-    msg = await ctx.send(embed=embed)
+    leaderboard_msg = await ctx.send(embed=embed)
 
+    # speichern
     leaderboard_messages[track.lower()] = {
         "channel_id": ctx.channel.id,
-        "message_id": msg.id
+        "message_id": leaderboard_msg.id
     }
-
     save_lb()
-    await ctx.send(f"Leaderboard für {track} erstellt.")
+
+    # Bestätigung kurz senden
+    confirm = await ctx.send(f"✅ Leaderboard für {track} erstellt")
+
+    # nach 2 Sekunden löschen
+    await asyncio.sleep(2)
+
+    try:
+        await ctx.message.delete()   # löscht !setup_lb command
+    except:
+        pass
+
+    try:
+        await confirm.delete()       # löscht Bestätigung
+    except:
+        pass
 
 
 # ===== SAY =====
