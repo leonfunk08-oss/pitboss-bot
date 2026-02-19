@@ -7,8 +7,8 @@ import json
 
 # ===== BOT SETUP =====
 intents = discord.Intents.default()
-intents.message_content = True
 intents.members = True  # wichtig für Rollencheck
+intents.message_content = True
 
 bot = commands.Bot(
     command_prefix="!",
@@ -327,8 +327,16 @@ async def leaderboard(ctx, track: str):
     await ctx.send(embed=embed)
 
 
-# ================= EVENTS =================
+@bot.command()
+async def say(ctx, *, text):
+    msg = await ctx.send(text)      # Bot sendet zuerst
+    try:
+        await ctx.message.delete()  # dann löscht er deine Nachricht
+    except:
+        pass
 
+
+# ================= EVENTS =================
 @bot.event
 async def on_ready():
     print(f"PitBoss online als {bot.user}")
