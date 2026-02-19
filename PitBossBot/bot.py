@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from discord.ui import Button, View
 from datetime import datetime, timedelta, timezone
+import json
+
 
 # ===== BOT SETUP =====
 intents = discord.Intents.default()
@@ -12,6 +14,37 @@ bot = commands.Bot(
     command_prefix="!",
     intents=intents
 )
+
+# ================= HOTLAP LEADERBOARD =================
+
+leaderboards = {}  # { "monza": { user_id: time_in_seconds } }
+
+def save_data():
+    with open("leaderboards.json", "w") as f:
+        json.dump(leaderboards, f)
+
+def load_data():
+    global leaderboards
+    try:
+        with open("leaderboards.json", "r") as f:
+            leaderboards = json.load(f)
+            leaderboards = {k: {int(uid): t for uid, t in v.items()} for k, v in leaderboards.items()}
+    except:
+        leaderboards = {}
+
+def time_to_seconds(time_str):
+    try:
+        minutes, rest = time_str.split(":")
+        seconds = float(rest)
+        return int(minutes) * 60 + seconds
+    except:
+        return None
+
+def seconds_to_time(seconds):
+    minutes = int(seconds // 60)
+    secs = seconds % 60
+    return f"{minutes}:{secs:06.3f}"
+
 
 # ===== ERLAUBTE ROLLEN =====
 ALLOWED_ROLES = ["Admin", "Race Control", "Steward" ,"Event coordinator"]  # Rollen, die Reminder erstellen dürfen
@@ -139,7 +172,7 @@ async def race(ctx, date: str, time: str, *, track:str):
     
     """
     Beispiel:
-    !race 14.02.2026 18:00 Paul Ricard Training 60min Rennen 60min
+    !race 14.02.2026 18:00 Paul Ricard | Training 60min Rennen 60min
     """
 
     # Datum + Zeit parsen (deutsches Format)
@@ -233,12 +266,75 @@ async def race(ctx, date: str, time: str, *, track:str):
     # View merkt sich Nachricht
     view.message = msg
 
+@bot.command()
+async def hotlap(ctx, track: str, lap_time: str):
+    track = track.lower()
+
+    # Prüfen ob Strecke existiert
+    if track not in track_images:
+        await ctx.send("❌ Track not found.")
+        return
+
+    seconds = time_to_seconds(lap_time)
+    if seconds is None:
+        await ctx.send("❌ Invalid time format. Use: 1:47.221")
+        return
+
+    user_id = ctx.author.id
+
+    if track not in leaderboards:
+        leaderboards[track] = {}
+
+    # Beste Zeit speichern
+    if user_id in leaderboards[track]:
+        if seconds < leaderboards[track][user_id]:
+            leaderboards[track][user_id] = seconds
+            save_data()
+            await ctx.send(f"🔥 New personal best: {lap_time}")
+        else:
+            await ctx.send("❌ Your previous lap is faster.")
+            return
+    else:
+        leaderboards[track][user_id] = seconds
+        save_data()
+        await ctx.send(f"🏁 Lap time recorded: {lap_time}")
+
+@bot.command()
+async def leaderboard(ctx, track: str):
+    track = track.lower()
+
+    if track not in leaderboards or not leaderboards[track]:
+        await ctx.send("❌ No times recorded for this track.")
+        return
+
+    sorted_times = sorted(leaderboards[track].items(), key=lambda x: x[1])
+
+    description = ""
+    position = 1
+
+    for user_id, time in sorted_times:
+        user = await bot.fetch_user(user_id)
+        formatted_time = seconds_to_time(time)
+        description += f"#{position} {user.name} — {formatted_time}\n"
+        position += 1
+
+    embed = discord.Embed(
+        title=f"🏁 {track.title()} Leaderboard",
+        description=description,
+        color=discord.Color.red()
+    )
+
+    await ctx.send(embed=embed)
+
 
 # ================= EVENTS =================
 
 @bot.event
 async def on_ready():
     print(f"PitBoss online als {bot.user}")
+    load_data()
+print("Leaderboard geladen.")
+
 
 @bot.event
 async def on_command_error(ctx, error):
