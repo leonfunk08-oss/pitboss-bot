@@ -310,7 +310,7 @@ async def hotlap(ctx, track: str, lap_time: str):
 async def leaderboard(ctx, track: str):
     track = track.lower().strip()
 
-    if track not in leaderboards:
+    if track not in leaderboards or len(leaderboards.get(track, {})) == 0:
         await ctx.send("❌ No times recorded for this track.")
         return
 
