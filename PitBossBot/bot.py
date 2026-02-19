@@ -3,29 +3,8 @@ from discord.ext import commands
 from discord.ui import Button, View
 from datetime import datetime, timedelta, timezone
 import json
-import subprocess
 import os
-import sys
-import signal
 import asyncio
-
-leaderboard_messages = {}
-
-import json
-
-def save_lb():
-    with open("leaderboards.json", "w") as f:
-        json.dump(leaderboard_messages, f)
-
-def load_lb():
-    global leaderboard_messages
-    try:
-        with open("leaderboards.json", "r") as f:
-            leaderboard_messages = json.load(f)
-    except:
-        leaderboard_messages = {}
-
-load_lb()
 
 
 # ===== SINGLE INSTANCE LOCK =====
@@ -75,17 +54,24 @@ leaderboards = {}  # { "monza": { user_id: time_in_seconds } }
 
 
 def save_data():
-    with open("leaderboards.json", "w") as f:
-        json.dump(leaderboards, f)
+    data = {
+        "laps": leaderboards,
+        "messages": leaderboard_messages
+    }
+    with open("data.json", "w") as f:
+        json.dump(data, f)
 
 def load_data():
-    global leaderboards
+    global leaderboards, leaderboard_messages
+
     try:
-        with open("leaderboards.json", "r") as f:
-            leaderboards = json.load(f)
-            leaderboards = {k: {int(uid): t for uid, t in v.items()} for k, v in leaderboards.items()}
+        with open("data.json", "r") as f:
+            data = json.load(f)
+            leaderboards = data.get("laps", {})
+            leaderboard_messages = data.get("messages", {})
     except:
         leaderboards = {}
+        leaderboard_messages = {}
 
 def time_to_seconds(time_str):
     try:
@@ -478,7 +464,7 @@ async def setup_lb(ctx, *, track: str):
         "channel_id": ctx.channel.id,
         "message_id": leaderboard_msg.id
     }
-    save_lb()
+    save_data()
 
     # Bestätigung kurz senden
     confirm = await ctx.send(f"✅ Leaderboard für {track} erstellt")
