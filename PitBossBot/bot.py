@@ -648,6 +648,50 @@ async def on_command_error(ctx, error):
 
     raise error
 
+@bot.event
+async def on_ready():
+    print(f"✅ Bot online: {bot.user}")
+
+    await asyncio.sleep(3)  # warten bis Discord ready
+
+    # Leaderboard Channel festlegen
+    lb_channel_id = settings.get("lb_channel_id")
+    if not lb_channel_id:
+        return
+
+    channel = bot.get_channel(lb_channel_id)
+    if not channel:
+        return
+
+    messages = [m async for m in channel.history(limit=200)]
+
+    found = 0
+
+    for msg in messages:
+        if msg.author != bot.user:
+            continue
+        if not msg.embeds:
+            continue
+
+        title = msg.embeds[0].title
+        if not title:
+            continue
+
+        if "leaderboard" not in title.lower():
+            continue
+
+        track = title.lower().replace("🏁", "").replace("leaderboard", "").strip()
+
+        leaderboard_messages[track] = {
+            "channel_id": channel.id,
+            "message_id": msg.id
+        }
+
+        found += 1
+
+    save_data()
+    print(f"🔁 {found} Leaderboards re-linked")
+
 
 # ================= TOKEN =================
 import os
