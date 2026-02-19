@@ -234,7 +234,7 @@ async def race(ctx, date: str, time: str, *, track:str):
 
 
 @bot.command()
-   async def say(ctx, *, text):
+async def say(ctx, *, text):
        await ctx.send(text) 
 
 
