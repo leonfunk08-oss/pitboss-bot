@@ -551,10 +551,6 @@ async def setup_all_lb(ctx):
             color=discord.Color.red()
         )
 
-        img = track_images.get(track)
-        if img:
-            embed.set_image(url=img)
-
         msg = await ctx.send(embed=embed)
 
         leaderboard_messages[track] = {
