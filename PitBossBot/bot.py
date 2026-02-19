@@ -6,6 +6,10 @@ import json
 import os
 import asyncio
 
+settings = {
+    "lb_channel_id": None
+}
+
 TRACK_ALIASES = {
     "paul ricard": "paul ricard",
     "spa": "spa francorchamps",
@@ -562,11 +566,12 @@ async def setup_all_lb(ctx):
 
         created += 1
 
-    save_data()
+@bot.command()
+async def set_lb_channel(ctx):
+    settings["lb_channel_id"] = ctx.channel.id
 
-    confirm = await ctx.send(f"✅ {created} Leaderboards erstellt")
-
-    await asyncio.sleep(3)
+    confirm = await ctx.send("✅ Leaderboard-Channel gesetzt")
+    await asyncio.sleep(2)
 
     try:
         await ctx.message.delete()
@@ -625,11 +630,49 @@ async def help(ctx):
 
 
 # ================= EVENTS =================
+
 @bot.event
 async def on_ready():
-    print(f"PitBoss online als {bot.user}")
-    load_data()
-    print("Leaderboard geladen.")
+    print(f"✅ Bot online: {bot.user}")
+
+    await asyncio.sleep(3)
+
+    lb_channel_id = settings.get("lb_channel_id")
+    if not lb_channel_id:
+        print("⚠️ Kein Leaderboard Channel gesetzt")
+        return
+
+    channel = bot.get_channel(lb_channel_id)
+    if not channel:
+        print("❌ Channel nicht gefunden")
+        return
+
+    messages = [m async for m in channel.history(limit=200)]
+    found = 0
+
+    for msg in messages:
+        if msg.author != bot.user:
+            continue
+        if not msg.embeds:
+            continue
+
+        title = msg.embeds[0].title
+        if not title:
+            continue
+
+        if "leaderboard" not in title.lower():
+            continue
+
+        track = title.lower().replace("🏁", "").replace("leaderboard", "").strip()
+
+        leaderboard_messages[track] = {
+            "channel_id": channel.id,
+            "message_id": msg.id
+        }
+
+        found += 1
+
+    print(f"🔁 {found} Leaderboards re-linked")
 
 
 @bot.event
