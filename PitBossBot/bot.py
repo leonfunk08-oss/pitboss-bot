@@ -110,9 +110,24 @@ def has_permission():
 
     return commands.check(predicate)
 
-def is_bot_owner():
+def is_owner_or_role():
     async def predicate(ctx):
-        return ctx.author.id == BOT_OWNER_ID
+
+        # BOT OWNER = immer erlaubt
+        if ctx.author.id == BOT_OWNER_ID:
+            return True
+
+        # nur Server (keine DM)
+        if ctx.guild is None:
+            return False
+
+        member = ctx.guild.get_member(ctx.author.id)
+        if member is None:
+            return False
+
+        user_roles = [role.name for role in member.roles]
+        return any(role in ALLOWED_ROLES for role in user_roles)
+
     return commands.check(predicate)
 
 
@@ -203,7 +218,7 @@ from urllib.parse import quote_plus
 # ===== RACE =====
 
 @bot.command()
-@has_permission()
+@is_owner_or_role
 async def race(ctx, date: str, time: str, *, track:str):
     
     # ===== STRECKE + BESCHREIBUNG PARSEN =====
@@ -355,7 +370,7 @@ async def leaderboard(ctx, track: str):
 # ===== SAY =====
 
 @bot.command()
-@is_bot_owner()
+@commands.check(lambda ctx: ctx.author.id == BOT_OWNER_ID)  # Nur du darfst diesen Befehl nutzen
 async def say(ctx, *, text: str):
     msg = await ctx.send(text)      # Bot sendet zuerst
     try:
@@ -411,13 +426,16 @@ async def on_command_error(ctx, error):
 
     if isinstance(error, commands.CheckFailure):
 
-        if ctx.command.name == "race":
-            await ctx.send("❌ Only People with the right Server Roles can create race Events.")
+        if ctx.command and ctx.command.name == "say":
+            return
 
-        elif ctx.command.name == "say":
-            await ctx.send("❌ You are not allowed to use this command.")
+        if ctx.command and ctx.command.name == "race":
+            await ctx.send("❌ Only authorized roles can create events.")
+            return
 
         return
+
+    raise error
 
 
 # ================= TOKEN =================
