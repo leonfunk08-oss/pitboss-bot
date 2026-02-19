@@ -531,6 +531,54 @@ async def setup_lb(ctx, *, track: str):
     except:
         pass
 
+@bot.command()
+@is_owner_or_role()
+async def setup_all_lb(ctx):
+
+    created = 0
+
+    for track in track_images.keys():
+
+        track = track.strip().lower()
+
+        # wenn schon existiert → skip
+        if track in leaderboard_messages:
+            continue
+
+        embed = discord.Embed(
+            title=f"🏁 {track.title()} Leaderboard",
+            description="Noch keine Zeiten",
+            color=discord.Color.red()
+        )
+
+        img = track_images.get(track)
+        if img:
+            embed.set_image(url=img)
+
+        msg = await ctx.send(embed=embed)
+
+        leaderboard_messages[track] = {
+            "channel_id": ctx.channel.id,
+            "message_id": msg.id
+        }
+
+        created += 1
+
+    save_data()
+
+    confirm = await ctx.send(f"✅ {created} Leaderboards erstellt")
+
+    await asyncio.sleep(3)
+
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+    try:
+        await confirm.delete()
+    except:
+        pass
 
 # ===== SAY =====
 
