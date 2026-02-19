@@ -373,12 +373,14 @@ async def hotlap(ctx, *, args):
 
     track, lap_time = args.split("|", 1)
 
-    # Track normalisieren
     track = normalize_track(track)
 
+        # wenn alias → umwandeln
     if track in TRACK_ALIASES:
-        track = TRACK_ALIASES[track]
-    else:
+            track = TRACK_ALIASES[track]
+
+        # danach prüfen ob echter track existiert
+    if track not in track_images:
         await ctx.send("❌ Track nicht erkannt.")
         return
 
