@@ -232,12 +232,13 @@ async def race(ctx, date: str, time: str, *, track:str):
     # View merkt sich Nachricht
     view.message = msg
 
-@bot.command()
-async def say(ctx, *, text):
-    await ctx.send(text)
-    
-# ================= EVENTS =================
 
+@bot.command()
+   async def say(ctx, *, text):
+       await ctx.send(text) 
+
+
+# ================= EVENTS =================
 @bot.event
 async def on_ready():
     print(f"PitBoss online als {bot.user}")
