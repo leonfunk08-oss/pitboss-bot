@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 # ===== BOT SETUP =====
 intents = discord.Intents.default()
 intents.members = True  # wichtig für Rollencheck
+intents.message_content = True
 
 bot = commands.Bot(
     command_prefix="!",
