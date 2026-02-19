@@ -6,6 +6,35 @@ import json
 import os
 import asyncio
 
+TRACK_ALIASES = {
+    "paul ricard": "paul ricard",
+    "spa": "spa francorchamps",
+    "spa francorchamps": "spa francorchamps",
+    "monza": "monza",
+    "nürburgring": "nürburgring",
+    "silverstone": "silverstone",
+    "barcelona": "barcelona",
+    "brands hatch": "brands hatch",
+    "hungaroring": "hungaroring",
+    "misano": "misano",
+    "zandvoort": "zandvoort",
+    "zolder": "zolder",
+    "snetterton": "snetterton",
+    "olton park": "olton park",
+    "donington park": "donington park",
+    "kyalami": "kyalami",
+    "suzuka": "suzuka",
+    "laguna seca": "laguna seca",
+    "mount panorama": "mount panorama",
+    "imola": "imola",
+    "watkins glen": "watkins glen",
+    "cota": "circuit of the americas",
+    "circuit of the americas": "circuit of the americas",
+    "indianapolis": "indianapolis",
+    "valencia": "valencia",
+    "red bull ring": "red bull ring",
+    "24h nürburgring": "24h nürburgring"
+}
 
 # ===== SINGLE INSTANCE LOCK =====
 print("BOT INSTANCE STARTED")
@@ -52,6 +81,8 @@ track_images = {
 
 leaderboards = {}  # { "monza": { user_id: time_in_seconds } }
 
+def normalize_track(track: str):
+    return track.strip().lower()
 
 def save_data():
     data = {
@@ -336,20 +367,22 @@ async def hotlap(ctx, *, args):
 
     args = args.strip()
 
-    # Format prüfen
     if "|" not in args:
-        await ctx.send("❌ Invalid format. Use: !hotlap track | 1:47.221")
+        await ctx.send("❌ Format: !hotlap track | 1:47.221")
         return
 
     track, lap_time = args.split("|", 1)
 
-    track = track.strip().lower()
-    lap_time = lap_time.strip()
+    # Track normalisieren
+    track = normalize_track(track)
 
-    # Prüfen ob Strecke existiert
-    if track not in track_images:
-        await ctx.send("❌ Track not found.")
+    if track in TRACK_ALIASES:
+        track = TRACK_ALIASES[track]
+    else:
+        await ctx.send("❌ Track nicht erkannt.")
         return
+
+    lap_time = lap_time.strip()
 
     # Zeit validieren
     seconds = time_to_seconds(lap_time)
@@ -365,33 +398,28 @@ async def hotlap(ctx, *, args):
 
     # Beste Zeit speichern
     if user_id in leaderboards[track]:
-
         if seconds < leaderboards[track][user_id]:
             leaderboards[track][user_id] = seconds
-            save_data()
-            await ctx.send(f"🔥 New personal best: {lap_time}")
         else:
-            await ctx.send("❌ Your previous lap is faster.")
+            await ctx.send("❌ Deine vorherige Runde ist schneller.")
             return
-
     else:
         leaderboards[track][user_id] = seconds
-        save_data()
 
+    save_data()
 
-    track_key = track.lower()
-
-    if track_key not in leaderboard_messages:
-        await ctx.send("❌ Leaderboard nicht eingerichtet. Admin: !setup_lb paul ricard")
+    # --- LEADERBOARD MESSAGE HOLEN ---
+    if track not in leaderboard_messages:
+        await ctx.send("❌ Leaderboard nicht eingerichtet. Admin: !setup_lb")
         return
 
-    channel_id = leaderboard_messages[track_key]["channel_id"]
-    message_id = leaderboard_messages[track_key]["message_id"]
+    channel_id = leaderboard_messages[track]["channel_id"]
+    message_id = leaderboard_messages[track]["message_id"]
 
     channel = bot.get_channel(channel_id)
     msg = await channel.fetch_message(message_id)
 
-    # leaderboard bauen
+    # --- Leaderboard neu bauen ---
     sorted_times = sorted(leaderboards[track].items(), key=lambda x: x[1])
 
     text = ""
@@ -416,8 +444,8 @@ async def hotlap(ctx, *, args):
 
     await msg.edit(embed=embed)
 
-    await asyncio.sleep(2)
-
+    # --- Command automatisch löschen ---
+    await asyncio.sleep(1)
     try:
         await ctx.message.delete()
     except:
@@ -457,35 +485,49 @@ async def leaderboard(ctx, *, track: str):
 @bot.command()
 async def setup_lb(ctx, *, track: str):
 
-    # Leaderboard posten
+    # Track normalisieren
+    track = normalize_track(track)
+
+    # Alias prüfen
+    if track in TRACK_ALIASES:
+        track = TRACK_ALIASES[track]
+    else:
+        await ctx.send("❌ Track nicht erkannt.")
+        return
+
+    # Leaderboard Embed erstellen
     embed = discord.Embed(
         title=f"🏁 {track.title()} Leaderboard",
         description="Noch keine Zeiten",
         color=discord.Color.red()
     )
 
+    # Leaderboard posten
     leaderboard_msg = await ctx.send(embed=embed)
 
-    # speichern
-    leaderboard_messages[track.lower()] = {
+    # Message speichern
+    leaderboard_messages[track] = {
         "channel_id": ctx.channel.id,
         "message_id": leaderboard_msg.id
     }
+
+    # In data.json speichern
     save_data()
 
-    # Bestätigung kurz senden
+    # kurze Bestätigung senden
     confirm = await ctx.send(f"✅ Leaderboard für {track} erstellt")
 
-    # nach 2 Sekunden löschen
     await asyncio.sleep(2)
 
+    # setup command löschen
     try:
-        await ctx.message.delete()   # löscht !setup_lb command
+        await ctx.message.delete()
     except:
         pass
 
+    # Bestätigung löschen
     try:
-        await confirm.delete()       # löscht Bestätigung
+        await confirm.delete()
     except:
         pass
 
