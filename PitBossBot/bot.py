@@ -68,9 +68,28 @@ def load_data():
 
 def time_to_seconds(time_str):
     try:
-        minutes, rest = time_str.split(":")
-        seconds = float(rest)
-        return int(minutes) * 60 + seconds
+        parts = time_str.split(":")
+
+        if len(parts) != 2:
+            return None
+
+        minutes = int(parts[0])
+
+        # Sekunden + optional Millisekunden
+        if "." in parts[1]:
+            seconds_part, millis_part = parts[1].split(".", 1)
+            seconds = int(seconds_part)
+            milliseconds = int(millis_part.ljust(3, "0")[:3])
+        else:
+            seconds = int(parts[1])
+            milliseconds = 0
+
+        if seconds >= 60:
+            return None
+
+        total_seconds = minutes * 60 + seconds + milliseconds / 1000
+        return total_seconds
+
     except:
         return None
 
@@ -306,26 +325,40 @@ async def race(ctx, date: str, time: str, *, track:str):
 # ===== HOTLAP =====
 
 @bot.command()
-async def hotlap(ctx, track: str, lap_time: str):
-    track = track.lower().strip()
+async def hotlap(ctx, *, args):
+
+    args = args.strip()
+
+    # Format prüfen
+    if "|" not in args:
+        await ctx.send("❌ Invalid format. Use: !hotlap track | 1:47.221")
+        return
+
+    track, lap_time = args.split("|", 1)
+
+    track = track.strip().lower()
+    lap_time = lap_time.strip()
 
     # Prüfen ob Strecke existiert
     if track not in track_images:
         await ctx.send("❌ Track not found.")
         return
 
+    # Zeit validieren
     seconds = time_to_seconds(lap_time)
     if seconds is None:
         await ctx.send("❌ Invalid time format. Use: 1:47.221")
         return
 
-    user_id = ctx.author.id
+    user_id = str(ctx.author.id)
 
+    # Leaderboard initialisieren falls nicht vorhanden
     if track not in leaderboards:
         leaderboards[track] = {}
 
     # Beste Zeit speichern
     if user_id in leaderboards[track]:
+
         if seconds < leaderboards[track][user_id]:
             leaderboards[track][user_id] = seconds
             save_data()
@@ -333,6 +366,7 @@ async def hotlap(ctx, track: str, lap_time: str):
         else:
             await ctx.send("❌ Your previous lap is faster.")
             return
+
     else:
         leaderboards[track][user_id] = seconds
         save_data()
