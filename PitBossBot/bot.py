@@ -368,29 +368,30 @@ async def race(ctx, date: str, time: str, *, track:str):
 
 @bot.command()
 async def hotlap(ctx, *, args):
-
     args = args.strip()
 
+    # --- Format prüfen ---
     if "|" not in args:
         await ctx.send("❌ Format: !hotlap track | 1:47.221")
         return
 
-    track, lap_time = args.split("|", 1)
+    track_raw, lap_time = args.split("|", 1)
+    track_raw = track_raw.strip()
+    lap_time = lap_time.strip()
 
-    track = normalize_track(track)
+    # --- Track normalisieren ---
+    track = normalize_track(track_raw)
 
-        # wenn alias → umwandeln
+    # Alias umwandeln falls nötig
     if track in TRACK_ALIASES:
-            track = TRACK_ALIASES[track]
+        track = TRACK_ALIASES[track]
 
-        # danach prüfen ob echter track existiert
+    # Existiert der Track?
     if track not in track_images:
         await ctx.send("❌ Track nicht erkannt.")
         return
 
-    lap_time = lap_time.strip()
-
-    # Zeit validieren
+    # --- Zeit validieren ---
     seconds = time_to_seconds(lap_time)
     if seconds is None:
         await ctx.send("❌ Invalid time format. Use: 1:47.221")
@@ -398,23 +399,20 @@ async def hotlap(ctx, *, args):
 
     user_id = str(ctx.author.id)
 
-    # Leaderboard initialisieren falls nicht vorhanden
+    # --- Leaderboard initialisieren falls nötig ---
     if track not in leaderboards:
         leaderboards[track] = {}
 
-    # Beste Zeit speichern
+    # --- Beste Zeit speichern ---
     if user_id in leaderboards[track]:
-        if seconds < leaderboards[track][user_id]:
-            leaderboards[track][user_id] = seconds
-        else:
+        if seconds >= leaderboards[track][user_id]:
             await ctx.send("❌ Deine vorherige Runde ist schneller.")
             return
-    else:
-        leaderboards[track][user_id] = seconds
 
+    leaderboards[track][user_id] = seconds
     save_data()
 
-    # --- LEADERBOARD MESSAGE HOLEN ---
+    # --- Leaderboard Message prüfen ---
     if track not in leaderboard_messages:
         await ctx.send("❌ Leaderboard nicht eingerichtet. Admin: !setup_lb")
         return
@@ -423,21 +421,33 @@ async def hotlap(ctx, *, args):
     message_id = leaderboard_messages[track]["message_id"]
 
     channel = bot.get_channel(channel_id)
-    msg = await channel.fetch_message(message_id)
+    if not channel:
+        return
+
+    try:
+        msg = await channel.fetch_message(message_id)
+    except:
+        return
 
     # --- Leaderboard neu bauen ---
-    sorted_times = sorted(leaderboards[track].items(), key=lambda x: x[1])
+    sorted_times = sorted(
+        leaderboards[track].items(),
+        key=lambda x: x[1]
+    )
 
     text = ""
     pos = 1
 
     for uid, secs in sorted_times:
-        user = await bot.fetch_user(int(uid))
-        mins = int(secs // 60)
-        sec = secs % 60
-        formatted = f"{mins}:{sec:06.3f}"
-        text += f"**#{pos} {user.name} — {formatted}**\n"
-        pos += 1
+        try:
+            user = await bot.fetch_user(int(uid))
+            mins = int(secs // 60)
+            sec = secs % 60
+            formatted = f"{mins}:{sec:06.3f}"
+            text += f"**#{pos} {user.name} — {formatted}**\n"
+            pos += 1
+        except:
+            continue
 
     if text == "":
         text = "Noch keine Zeiten"
@@ -450,13 +460,14 @@ async def hotlap(ctx, *, args):
 
     await msg.edit(embed=embed)
 
-    # --- Command automatisch löschen ---
+    # --- Command löschen (sauberer Channel) ---
     await asyncio.sleep(1)
     try:
         await ctx.message.delete()
     except:
         pass
 
+    
 # ===== LEADERBOARD =====
 
 @bot.command()
