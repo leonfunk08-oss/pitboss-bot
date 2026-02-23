@@ -142,8 +142,8 @@ def seconds_to_time(seconds):
 
 
 # ===== ERLAUBTE ROLLEN =====
-ALLOWED_ROLES = ["Admin", "Race Control", "Steward" ,"Event coordinator"]
-BOT_OWNER_ID = 400613342340710400  # Ersetze durch deine Discord User ID (optional, falls du immer Zugriff haben möchtest)
+ALLOWED_ROLES = ["Event coordinator"]
+BOT_OWNER_ID = 400613342340710400  # Discord User ID (optional, falls du immer Zugriff haben möchtest)
 
 
 # ===== ROLLENCHECK STABIL (KEINE CRASHES MEHR) =====
