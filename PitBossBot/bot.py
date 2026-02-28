@@ -329,7 +329,7 @@ async def race(ctx, date: str, time: str, *, track:str):
             image_url = url
             break
 
-    # Embed bauen
+       # Embed bauen
     embed = discord.Embed(
         title=f"🏁 {track.title()} - It's Race Time !",
         description=(
@@ -341,6 +341,10 @@ async def race(ctx, date: str, time: str, *, track:str):
         ),
         color=0xF1C40F
     )
+
+    # ===== INSTANCE FINGERPRINT =====
+    instance = f"{socket.gethostname()} | pid:{os.getpid()}"
+    embed.set_footer(text=f"PitBoss Systems • {instance}")
 
     if image_url:
         embed.set_image(url=image_url)
@@ -381,8 +385,6 @@ async def race(ctx, date: str, time: str, *, track:str):
     except discord.HTTPException:
         print("❌ Fehler beim Löschen der Nachricht.")
 
-        instance = f"{socket.gethostname()} | pid:{os.getpid()}"
-embed.set_footer(text=f"PitBoss Systems • {instance}")
 # ===== HOTLAP =====
 
 @bot.command()
