@@ -330,30 +330,24 @@ async def race(ctx, date: str, time: str, *, track:str):
             break
 
        # Embed bauen
-    embed = discord.Embed(
+        embed = discord.Embed(
         title=f"🏁 {track.title()} - It's Race Time !",
-        description=(
-            "Please vote if you are racing:\n\n"
-            f"📅 Race Time: <t:{timestamp}:F>\n"
-            f"⏳ Countdown: <t:{timestamp}:R>\n"
-            f"📆 [Add to Google Calendar]({google_link})\n\n"
-            f"ℹ️ Info: {desc if desc else '-'}\n\u200b\n"
-        ),
+        description=(...),
         color=0xF1C40F
     )
 
-    # ===== INSTANCE FINGERPRINT =====
+    # Fingerprint IMMER setzen
     instance = f"{socket.gethostname()} | pid:{os.getpid()}"
     embed.set_footer(text=f"PitBoss Systems • {instance}")
 
     if image_url:
         embed.set_image(url=image_url)
 
-        embed.add_field(name="\u200b", value="\u200b", inline=False)
-        embed.add_field(name="🟢 Accepted (0)", value="-", inline=False)
-        embed.add_field(name="🔴 Declined (0)", value="-", inline=False)
-        embed.add_field(name="🟡 Maybe (0)", value="-", inline=False)
-        embed.set_footer(text="PitBoss Systems")
+    # Felder IMMER hinzufügen (nicht nur wenn Bild vorhanden)
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
+    embed.add_field(name="🟢 Accepted (0)", value="-", inline=False)
+    embed.add_field(name="🔴 Declined (0)", value="-", inline=False)
+    embed.add_field(name="🟡 Maybe (0)", value="-", inline=False)
 
 
     # View inkl. Persistenz (damit Info beim Update nicht verschwindet)
