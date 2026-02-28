@@ -87,6 +87,7 @@ track_images = {
 # ================= HOTLAP LEADERBOARD =================
 
 leaderboards = {}  # { "monza": { user_id: time_in_seconds } }
+leaderboard_messages = {}
 
 def normalize_track(track: str):
     return track.strip().lower()
@@ -94,22 +95,29 @@ def normalize_track(track: str):
 def save_data():
     data = {
         "laps": leaderboards,
-        "messages": leaderboard_messages
+        "messages": leaderboard_messages,
+        "settings": settings
     }
     with open("data.json", "w") as f:
         json.dump(data, f)
 
+
 def load_data():
-    global leaderboards, leaderboard_messages
+    global leaderboards, leaderboard_messages, settings
 
     try:
         with open("data.json", "r") as f:
             data = json.load(f)
-            leaderboards = data.get("laps", {})
-            leaderboard_messages = data.get("messages", {})
+
+        leaderboards = data.get("laps", {})
+        leaderboard_messages = data.get("messages", {})
+        settings = data.get("settings", settings)
+
     except:
         leaderboards = {}
         leaderboard_messages = {}
+        # settings NICHT überschreiben, sonst verlierst du defaults
+
 
 def time_to_seconds(time_str):
     try:
@@ -283,34 +291,23 @@ from urllib.parse import quote_plus
 
 @bot.command()
 @is_owner_or_role()
-async def race(ctx, date: str, time: str, *, track:str):
-    
-    # ===== STRECKE + BESCHREIBUNG PARSEN =====
-    # Nutzung:
-    # !race 20.02.2026 20:00 Red Bull Ring | Lobby open | Mandatory pitstop
+async def race(ctx, date: str, time: str, *, track: str):
 
+    # Beschreibung parsen
     if "|" in track:
         track_name, desc = track.split("|", 1)
         track = track_name.strip()
-        desc = desc.strip().replace("|", "\n")  # weitere | = neue Zeile
+        desc = desc.strip().replace("|", "\n")
     else:
         track = track.strip()
         desc = None
 
-    
-    """
-    Beispiel:
-    !race 14.02.2026 18:00 Paul Ricard | Training 60min Rennen 60min
-    """
-
-    # Datum + Zeit parsen (deutsches Format)
+    # Datum + Zeit parsen
     dt_local = datetime.strptime(f"{date} {time}", "%d.%m.%Y %H:%M")
-
-    # Deutschland im Februar = CET (UTC+1)
     dt_utc = dt_local - timedelta(hours=1)
     timestamp = int(dt_utc.replace(tzinfo=timezone.utc).timestamp())
 
-    # Google Kalender (2h Standarddauer)
+    # Google Kalender
     start_google = dt_utc.strftime("%Y%m%dT%H%M%SZ")
     end_google = (dt_utc + timedelta(hours=2)).strftime("%Y%m%dT%H%M%SZ")
 
@@ -322,19 +319,18 @@ async def race(ctx, date: str, time: str, *, track:str):
         f"&location={quote_plus(track)}"
     )
 
-    # Streckenbilder (Keys klein!)
+    # Trackbild finden
     track_lower = track.lower()
-
     image_url = None
     for key, url in track_images.items():
         if key.lower() in track_lower:
             image_url = url
             break
 
-       # Embed bauen
-        embed = discord.Embed(
+    # Embed bauen
+    embed = discord.Embed(
         title=f"🏁 {track.title()} - It's Race Time !",
-        description=( 
+        description=(
             "Please vote if you are racing:\n\n"
             f"📅 Race Time: <t:{timestamp}:F>\n"
             f"⏳ Countdown: <t:{timestamp}:R>\n"
@@ -344,48 +340,34 @@ async def race(ctx, date: str, time: str, *, track:str):
         color=0xF1C40F
     )
 
-    # Fingerprint IMMER setzen
+    # Footer (dein Fingerprint kann bleiben)
     instance = f"{socket.gethostname()} | pid:{os.getpid()} | boot:{BOOT_ID}"
     embed.set_footer(text=f"PitBoss Systems • {instance}")
 
     if image_url:
         embed.set_image(url=image_url)
 
-    # Felder IMMER hinzufügen (nicht nur wenn Bild vorhanden)
     embed.add_field(name="\u200b", value="\u200b", inline=False)
     embed.add_field(name="🟢 Accepted (0)", value="-", inline=False)
     embed.add_field(name="🔴 Declined (0)", value="-", inline=False)
     embed.add_field(name="🟡 Maybe (0)", value="-", inline=False)
 
-
-    # View inkl. Persistenz (damit Info beim Update nicht verschwindet)
-    
+    # View
     view = RSVPView(info_text=desc, image_url=image_url)
     view.timestamp = timestamp
     view.google_link = google_link
     view.track = track
 
-    # erste Nachricht senden
+    # NUR EINMAL senden
     msg = await ctx.send(embed=embed, view=view)
-
-    # View merkt sich Nachricht
     view.message = msg
 
-        # erste Nachricht senden
-    msg = await ctx.send(embed=embed, view=view)
-
-    # View merkt sich Nachricht
-    view.message = msg
-
-    # ===== COMMAND NACH ERSTELLUNG LÖSCHEN =====
-    await asyncio.sleep(1)  # optional kleine Verzögerung
-
+    # Command löschen
+    await asyncio.sleep(1)
     try:
         await ctx.message.delete()
-    except discord.Forbidden:
-        print("❌ Keine Berechtigung zum Löschen von Nachrichten.")
-    except discord.HTTPException:
-        print("❌ Fehler beim Löschen der Nachricht.")
+    except:
+        pass
 
 # ===== HOTLAP =====
 
@@ -667,33 +649,32 @@ async def help(ctx):
 
 @bot.event
 async def on_ready():
-    print(f"✅ Bot online: {bot.user}")
+    print(f"✅ Bot online: {bot.user} | boot:{BOOT_ID}")
 
-    await asyncio.sleep(3)
+    # Persistenz laden (wichtig: lädt auch leaderboard_messages)
+    load_data()
+
+    await asyncio.sleep(3)  # warten bis Discord komplett ready ist
 
     lb_channel_id = settings.get("lb_channel_id")
     if not lb_channel_id:
-        print("⚠️ Kein Leaderboard Channel gesetzt")
+        print("⚠️ Kein Leaderboard Channel gesetzt (nutze !set_lb_channel)")
         return
 
     channel = bot.get_channel(lb_channel_id)
     if not channel:
-        print("❌ Channel nicht gefunden")
+        print("❌ Leaderboard Channel nicht gefunden")
         return
 
+    # vorhandene Leaderboard-Embeds aus dem Channel wiederfinden
     messages = [m async for m in channel.history(limit=200)]
     found = 0
 
     for msg in messages:
-        if msg.author != bot.user:
-            continue
-        if not msg.embeds:
+        if msg.author != bot.user or not msg.embeds:
             continue
 
-        title = msg.embeds[0].title
-        if not title:
-            continue
-
+        title = msg.embeds[0].title or ""
         if "leaderboard" not in title.lower():
             continue
 
@@ -703,9 +684,9 @@ async def on_ready():
             "channel_id": channel.id,
             "message_id": msg.id
         }
-
         found += 1
 
+    save_data()
     print(f"🔁 {found} Leaderboards re-linked")
 
 
@@ -724,50 +705,6 @@ async def on_command_error(ctx, error):
         return
 
     raise error
-
-@bot.event
-async def on_ready():
-    print(f"✅ Bot online: {bot.user}")
-
-    await asyncio.sleep(3)  # warten bis Discord ready
-
-    # Leaderboard Channel festlegen
-    lb_channel_id = settings.get("lb_channel_id")
-    if not lb_channel_id:
-        return
-
-    channel = bot.get_channel(lb_channel_id)
-    if not channel:
-        return
-
-    messages = [m async for m in channel.history(limit=200)]
-
-    found = 0
-
-    for msg in messages:
-        if msg.author != bot.user:
-            continue
-        if not msg.embeds:
-            continue
-
-        title = msg.embeds[0].title
-        if not title:
-            continue
-
-        if "leaderboard" not in title.lower():
-            continue
-
-        track = title.lower().replace("🏁", "").replace("leaderboard", "").strip()
-
-        leaderboard_messages[track] = {
-            "channel_id": channel.id,
-            "message_id": msg.id
-        }
-
-        found += 1
-
-    save_data()
-    print(f"🔁 {found} Leaderboards re-linked")
 
 
 # ================= TOKEN =================
