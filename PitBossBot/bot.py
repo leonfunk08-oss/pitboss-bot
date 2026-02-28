@@ -364,6 +364,22 @@ async def race(ctx, date: str, time: str, *, track:str):
     # View merkt sich Nachricht
     view.message = msg
 
+        # erste Nachricht senden
+    msg = await ctx.send(embed=embed, view=view)
+
+    # View merkt sich Nachricht
+    view.message = msg
+
+    # ===== COMMAND NACH ERSTELLUNG LÖSCHEN =====
+    await asyncio.sleep(1)  # optional kleine Verzögerung
+
+    try:
+        await ctx.message.delete()
+    except discord.Forbidden:
+        print("❌ Keine Berechtigung zum Löschen von Nachrichten.")
+    except discord.HTTPException:
+        print("❌ Fehler beim Löschen der Nachricht.")
+
 # ===== HOTLAP =====
 
 @bot.command()
