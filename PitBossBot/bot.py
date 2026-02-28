@@ -208,7 +208,7 @@ class RSVPView(View):
 
     async def update_message(self, interaction):
         embed = discord.Embed(
-        title=f"🏁 {self.track.title()} - Race Night",
+        title=f"🏁 {self.track.title()} - It's Race Time !",
         description=(
             "Please vote if you are racing:\n\n"
             f"📅 Race Time: <t:{self.timestamp}:F>\n"
