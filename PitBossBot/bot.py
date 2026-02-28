@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 import asyncio
+import socket
 
 settings = {
     "lb_channel_id": None
@@ -330,7 +331,7 @@ async def race(ctx, date: str, time: str, *, track:str):
 
     # Embed bauen
     embed = discord.Embed(
-        title=f"🏁 {track.title()} - Race Night",
+        title=f"🏁 {track.title()} - It's Race Time !",
         description=(
             "Please vote if you are racing:\n\n"
             f"📅 Race Time: <t:{timestamp}:F>\n"
@@ -380,6 +381,8 @@ async def race(ctx, date: str, time: str, *, track:str):
     except discord.HTTPException:
         print("❌ Fehler beim Löschen der Nachricht.")
 
+        instance = f"{socket.gethostname()} | pid:{os.getpid()}"
+embed.set_footer(text=f"PitBoss Systems • {instance}")
 # ===== HOTLAP =====
 
 @bot.command()
