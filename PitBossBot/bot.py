@@ -663,7 +663,7 @@ async def cleanup_events(ctx, limit: int = 50):
             continue
 
         title = (msg.embeds[0].title or "").lower()
-        if "it's race time" in title or "race time" in title:
+        if "race night" in title or "race time" in title:
             try:
                 await msg.delete()
                 deleted += 1
