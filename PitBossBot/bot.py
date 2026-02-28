@@ -219,34 +219,36 @@ class RSVPView(View):
 
     async def update_message(self, interaction):
         embed = discord.Embed(
-        title=f"🏁 {self.track.title()} - It's Race Time !",
-        description=(
-            "Please vote if you are racing:\n\n"
-            f"📅 Race Time: <t:{self.timestamp}:F>\n"
-            f"⏳ Countdown: <t:{self.timestamp}:R>\n"
-            f"📆 [Add to Google Calendar]({self.google_link})\n\n"
-            f"ℹ️ Info: {self.info_text if self.info_text else '-'}\n\u200b\n"
-        ),
+            title=f"🏁 {self.track.title()} - It's Race Time !",
+            description=(
+                "Please vote if you are racing:\n\n"
+                f"📅 Race Time: <t:{self.timestamp}:F>\n"
+                f"⏳ Countdown: <t:{self.timestamp}:R>\n"
+                f"📆 [Add to Google Calendar]({self.google_link})\n\n"
+                f"ℹ️ Info: {self.info_text if self.info_text else '-'}\n\u200b\n"
+            ),
             color=0xF1C40F
         )
+
+        # Footer beim Update beibehalten
+        instance = f"{socket.gethostname()} | pid:{os.getpid()} | boot:{BOOT_ID}"
+        embed.set_footer(text=f"PitBoss Systems • {instance}")
 
         if self.image_url:
             embed.set_image(url=self.image_url)
 
         embed.add_field(name="\u200b", value="\u200b", inline=False)
-        
+
         embed.add_field(
             name=f"🟢 Accepted ({len(self.accepted)})",
             value="\n".join(self.accepted) or "-",
             inline=False
         )
-
         embed.add_field(
             name=f"🔴 Declined ({len(self.declined)})",
             value="\n".join(self.declined) or "-",
             inline=False
         )
-
         embed.add_field(
             name=f"🟡 Maybe ({len(self.tentative)})",
             value="\n".join(self.tentative) or "-",
@@ -643,6 +645,38 @@ async def help(ctx):
     embed.set_footer(text="PitBoss Racing System")
 
     await ctx.send(embed=embed)
+
+@bot.command()
+@is_owner_or_role()
+async def cleanup_events(ctx, limit: int = 50):
+    """
+    Löscht bis zu 'limit' letzte Bot-Nachrichten im aktuellen Channel,
+    die wie Race-Events aussehen (title enthält "It's Race Time").
+    Nutzung: !cleanup_events 50
+    """
+    deleted = 0
+
+    async for msg in ctx.channel.history(limit=limit):
+        if msg.author != bot.user:
+            continue
+        if not msg.embeds:
+            continue
+
+        title = (msg.embeds[0].title or "").lower()
+        if "it's race time" in title or "race time" in title:
+            try:
+                await msg.delete()
+                deleted += 1
+            except:
+                pass
+
+    confirm = await ctx.send(f"✅ {deleted} Event-Nachrichten gelöscht.")
+    await asyncio.sleep(2)
+    try:
+        await ctx.message.delete()
+        await confirm.delete()
+    except:
+        pass
 
 
 # ================= EVENTS =================
