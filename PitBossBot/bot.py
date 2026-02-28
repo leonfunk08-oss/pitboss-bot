@@ -6,6 +6,8 @@ import json
 import os
 import asyncio
 import socket
+import uuid
+boot_ID = uuid.uuid4().hex[:6] # Einzigartige ID für diese Bot-Instanz
 
 settings = {
     "lb_channel_id": None
@@ -332,12 +334,18 @@ async def race(ctx, date: str, time: str, *, track:str):
        # Embed bauen
         embed = discord.Embed(
         title=f"🏁 {track.title()} - It's Race Time !",
-        description=(...),
+        description=( 
+            "Please vote if you are racing:\n\n"
+            f"📅 Race Time: <t:{timestamp}:F>\n"
+            f"⏳ Countdown: <t:{timestamp}:R>\n"
+            f"📆 [Add to Google Calendar]({google_link})\n\n"
+            f"ℹ️ Info: {desc if desc else '-'}\n\u200b\n"
+        ),
         color=0xF1C40F
     )
 
     # Fingerprint IMMER setzen
-    instance = f"{socket.gethostname()} | pid:{os.getpid()}"
+    instance = f"{socket.gethostname()} | pid:{os.getpid()} | boot:{boot_ID}"
     embed.set_footer(text=f"PitBoss Systems • {instance}")
 
     if image_url:
