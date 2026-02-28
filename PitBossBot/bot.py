@@ -7,7 +7,7 @@ import os
 import asyncio
 import socket
 import uuid
-boot_ID = uuid.uuid4().hex[:6] # Einzigartige ID für diese Bot-Instanz
+BOOT_ID = uuid.uuid4().hex[:6] # Einzigartige ID für diese Bot-Instanz
 
 settings = {
     "lb_channel_id": None
@@ -345,7 +345,7 @@ async def race(ctx, date: str, time: str, *, track:str):
     )
 
     # Fingerprint IMMER setzen
-    instance = f"{socket.gethostname()} | pid:{os.getpid()} | boot:{boot_ID}"
+    instance = f"{socket.gethostname()} | pid:{os.getpid()} | boot:{BOOT_ID}"
     embed.set_footer(text=f"PitBoss Systems • {instance}")
 
     if image_url:
